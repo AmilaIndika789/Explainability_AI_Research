@@ -13,6 +13,7 @@ from sklearn.metrics import f1_score, accuracy_score
 
 from interpret.blackbox import LimeTabular
 from interpret import show
+from interpret.ext.blackbox import TabularExplainer
 
 
 # %%
@@ -68,16 +69,69 @@ print("Accuracy: ", accuracy_score(Y_test, Y_pred))
 print(f"F1 Score {f1_score(Y_test, Y_pred, average='macro')}")
 
 
+# %% [markdown]
+### lime
+
 # %%
+
 lime = LimeTabular(
     predict_fn=clf.predict_proba,
     data=X_train,
     explain_kwargs={"top_labels": 2},
     class_names=["Average", "Good", "Vg", "Excellent"],
 )
-
-# %%
 lime_local = lime.explain_local(X_test[:2])
 show(lime_local)
 
+# %% [markdown]
+### lime
+
+
 # %%
+explainer = TabularExplainer(
+    clf, X_train, class_names=["Average", "Good", "Vg", "Excellent"]
+)
+
+# %%
+
+# global level explanation
+global_explanation = explainer.explain_global(X_test)
+
+# Sorted SHAP values
+print(
+    "ranked global importance values: {}".format(
+        global_explanation.get_ranked_global_values()
+    )
+)
+# Corresponding feature names
+print(
+    "ranked global importance names: {}".format(
+        global_explanation.get_ranked_global_names()
+    )
+)
+# Feature ranks (based on original order of features)
+print("global importance rank: {}".format(global_explanation.global_importance_rank))
+
+# Note: Do not run this cell if using PFIExplainer, it does not support per class explanations
+# Per class feature names
+print(
+    "ranked per class feature names: {}".format(
+        global_explanation.get_ranked_per_class_names()
+    )
+)
+# Per class feature importance values
+print(
+    "ranked per class feature values: {}".format(
+        global_explanation.get_ranked_per_class_values()
+    )
+)
+
+print(
+    "global importance rank: {}".format(
+        global_explanation.get_feature_importance_dict()
+    )
+)
+
+from raiwidgets import ExplanationDashboard
+
+ExplanationDashboard(global_explanation, clf, dataset=X_test, true_y=Y_test)
